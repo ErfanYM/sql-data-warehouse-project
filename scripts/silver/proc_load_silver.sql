@@ -203,13 +203,20 @@ BEGIN
 		)
 		SELECT
 			REPLACE(cid, '-', '') AS cid, 
-			CASE
-				WHEN TRIM(cntry) = 'DE' THEN 'Germany'
-				WHEN TRIM(cntry) IN ('US', 'USA') THEN 'United States'
-				WHEN TRIM(cntry) = '' OR cntry IS NULL THEN 'n/a'
-				ELSE TRIM(cntry)
-			END AS cntry -- Normalize and Handle missing or blank country codes
+			cntry
 		FROM bronze.erp_loc_a101;
+
+		UPDATE silver.erp_loc_a101
+		SET cntry = CASE 
+			WHEN UPPER(TRIM(REPLACE(REPLACE(cntry, CHAR(13), ''), CHAR(10), ''))) = 'DE'
+				THEN 'Germany'
+			WHEN UPPER(TRIM(REPLACE(REPLACE(cntry, CHAR(13), ''), CHAR(10), ''))) IN ('USA', 'US')
+				THEN 'United States'
+			WHEN cntry IS NULL 
+				OR TRIM(REPLACE(REPLACE(cntry, CHAR(13), ''), CHAR(10), '')) = ''
+				THEN 'n/a'
+			ELSE TRIM(REPLACE(REPLACE(cntry, CHAR(13), ''), CHAR(10), ''))
+		END; -- Normalize and Handle missing or blank country codes
 	    SET @end_time = GETDATE();
         PRINT '>> Load Duration: ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
         PRINT '>> -------------';
